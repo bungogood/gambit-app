@@ -1,4 +1,8 @@
+import '@ionic/react/css/core.css';
+import { setupIonicReact } from '@ionic/react';
 import { useState } from 'react'
+
+setupIonicReact();
 
 function App() {
   const [count, setCount] = useState(0)

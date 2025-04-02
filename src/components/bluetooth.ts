@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
-import { BleClient, BleDevice } from "@capacitor-community/bluetooth-le";
+import {
+    BleClient,
+    BleDevice,
+    textToDataView,
+} from "@capacitor-community/bluetooth-le";
 
 const SERVICE_UUID = "f88918be-312c-4a9b-a7a2-97db83b2e3a9";
 const FEN_CHAR_UUID = "82ca99da-f6c3-4eb7-ac2d-ea12cac9af5c";
@@ -12,11 +16,12 @@ interface BluetoothServiceProps {
     onMagnetUpdate: (magnetState: bigint) => void;
     onStateUpdate: (state: FSMState) => void;
     onMoveUpdate: (move: string) => void;
-    sendMove: (move: string) => void;
 }
 
 export enum FSMState {
     Idle = "Idle",
+    FriendlyPU = "FriendlyPU",
+    EnemyPU = "EnemyPU",
 }
 
 export const useBluetoothService = ({
@@ -24,7 +29,6 @@ export const useBluetoothService = ({
     onMagnetUpdate,
     onStateUpdate,
     onMoveUpdate,
-    sendMove,
 }: BluetoothServiceProps) => {
     const [device, setDevice] = useState<BleDevice | null>(null);
 
@@ -120,7 +124,8 @@ export const useBluetoothService = ({
 
     const processState = (value: DataView) => {
         const decoder = new TextDecoder();
-        onStateUpdate(decoder.decode(value.buffer) as FSMState);
+        const stateStr = decoder.decode(value.buffer);
+        onStateUpdate(stateStr as FSMState);
     };
 
     const processMove = (value: DataView) => {
@@ -136,9 +141,21 @@ export const useBluetoothService = ({
         }
     };
 
+    const sendMove = async (move: string) => {
+        if (device) {
+            await BleClient.write(
+                device.deviceId,
+                SERVICE_UUID,
+                MOVE_CHAR_UUID,
+                textToDataView(move)
+            );
+        }
+    };
+
     return {
         connect: connectDevice,
         disconnect: disconnectDevice,
         isConnected: device !== null,
+        sendMove: sendMove,
     };
 };

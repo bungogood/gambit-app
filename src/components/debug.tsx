@@ -25,17 +25,20 @@ const DebugBoard = () => {
     }, []);
 
     // const { connect, disconnect, isConnected, sendMove } = useBluetoothService({
-    const { connect, disconnect, isConnected } = useBluetoothService({
+    const { connect, disconnect, isConnected, sendMove } = useBluetoothService({
         onFenUpdate: (fen) => setChess(new Chess(fen)),
         onMagnetUpdate: updateSensedSquares,
-        onStateUpdate: setFsmState,
+        onStateUpdate: (state) => {
+            console.log("State changed:", state);
+            setFsmState(state);
+        },
         onMoveUpdate: setLastMove,
-        sendMove: (move) => {},
     });
 
     const onPieceDragBegin = useCallback(
         (piece: string, sourceSquare: string) => {
-            if (fsmState !== FSMState.Idle) return; // If not web's turn, ignore
+            // console.log(fsmState);
+            // if (fsmState !== FSMState.EnemyPU) return; // If not web's turn, ignore
             const moves = chess.moves({
                 square: sourceSquare,
                 verbose: true,
@@ -72,11 +75,12 @@ const DebugBoard = () => {
 
             if (move === null) return false; // Invalid move
 
-            // sendMove(move.san);
+            const moveStr = move.from + move.to;
+            console.log("Sending move:", moveStr);
+            sendMove(moveStr);
             return true;
         },
-        // [chess, sendMove]
-        [chess]
+        [chess, fsmState]
     );
 
     return (
@@ -97,7 +101,7 @@ const DebugBoard = () => {
                     onPieceDragBegin={onPieceDragBegin}
                     onPieceDragEnd={onPieceDragEnd}
                     onPieceDrop={onPieceDrop}
-                    arePiecesDraggable={fsmState == FSMState.Idle} // Only allow dragging if it's the web user's turn
+                    arePiecesDraggable={fsmState == FSMState.EnemyPU} // Only allow dragging if it's the web user's turn
                 />
             </div>
         </div>
